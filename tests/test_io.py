@@ -1,0 +1,139 @@
+"""Tests for foldr.io — format loading, column overrides, error messages."""
+
+from __future__ import annotations
+
+import numpy as np
+import pytest
+
+from foldr.io import FoldrReadError, load_lightcurve
+
+from conftest import save_csv, save_fits, save_npz
+
+
+@pytest.fixture
+def sample_lc(transit_lc_factory):
+    return transit_lc_factory(
+        period=3.21,
+        t0=1.5,
+        depth=0.005,
+        duration=0.1,
+        noise=1e-4,
+        span=10.0,
+        cadence=2 / 60 / 24,
+        seed=7,
+    )
+
+
+def _reference_time_flux(synth):
+    median = np.median(synth.flux)
+    return synth.time, synth.flux / median
+
+
+def test_npz_roundtrip(tmp_path, sample_lc):
+    path = save_npz(sample_lc, tmp_path / "lc.npz")
+    lc = load_lightcurve(path)
+
+    ref_time, ref_flux = _reference_time_flux(sample_lc)
+    assert np.allclose(lc.time, ref_time)
+    assert np.allclose(lc.flux, ref_flux)
+    assert lc.n_removed == 0
+
+
+def test_csv_roundtrip(tmp_path, sample_lc):
+    path = save_csv(sample_lc, tmp_path / "lc.csv")
+    lc = load_lightcurve(path)
+
+    ref_time, ref_flux = _reference_time_flux(sample_lc)
+    assert np.allclose(lc.time, ref_time, atol=1e-6)
+    assert np.allclose(lc.flux, ref_flux, atol=1e-6)
+
+
+def test_fits_roundtrip(tmp_path, sample_lc):
+    path = save_fits(sample_lc, tmp_path / "lc.fits")
+    lc = load_lightcurve(path)
+
+    ref_time, ref_flux = _reference_time_flux(sample_lc)
+    assert np.allclose(lc.time, ref_time)
+    assert np.allclose(lc.flux, ref_flux)
+
+
+def test_all_formats_agree(tmp_path, sample_lc):
+    npz = load_lightcurve(save_npz(sample_lc, tmp_path / "a.npz"))
+    csv = load_lightcurve(save_csv(sample_lc, tmp_path / "a.csv"))
+    fits_lc = load_lightcurve(save_fits(sample_lc, tmp_path / "a.fits"))
+
+    assert np.allclose(npz.time, csv.time, atol=1e-6)
+    assert np.allclose(npz.time, fits_lc.time, atol=1e-6)
+    assert np.allclose(npz.flux, csv.flux, atol=1e-6)
+    assert np.allclose(npz.flux, fits_lc.flux, atol=1e-6)
+
+
+def test_column_override_npz(tmp_path, sample_lc):
+    path = tmp_path / "custom.npz"
+    np.savez(path, my_time=sample_lc.time, my_flux=sample_lc.flux)
+
+    lc = load_lightcurve(path, time_col="my_time", flux_col="my_flux")
+    assert lc.time.size == sample_lc.time.size
+
+
+def test_column_override_fits(tmp_path, sample_lc):
+    from astropy.io import fits
+
+    path = tmp_path / "custom.fits"
+    cols = [
+        fits.Column(name="BJD", format="D", array=sample_lc.time),
+        fits.Column(name="RAWFLUX", format="D", array=sample_lc.flux),
+    ]
+    hdu = fits.BinTableHDU.from_columns(cols, name="LC")
+    fits.HDUList([fits.PrimaryHDU(), hdu]).writeto(path, overwrite=True)
+
+    lc = load_lightcurve(path, time_col="BJD", flux_col="RAWFLUX")
+    assert lc.time.size == sample_lc.time.size
+
+
+def test_missing_flux_column_error_lists_columns(tmp_path, sample_lc):
+    path = tmp_path / "noflux.npz"
+    np.savez(path, time=sample_lc.time, nonsense=sample_lc.flux)
+
+    with pytest.raises(FoldrReadError) as exc_info:
+        load_lightcurve(path)
+
+    msg = str(exc_info.value)
+    assert "flux" in msg.lower()
+    assert "nonsense" in msg
+
+
+def test_missing_file_raises():
+    with pytest.raises(FoldrReadError):
+        load_lightcurve("/tmp/does-not-exist-foldr-xyz.npz")
+
+
+def test_unsupported_extension_raises(tmp_path):
+    path = tmp_path / "lc.bin"
+    path.write_bytes(b"nope")
+    with pytest.raises(FoldrReadError):
+        load_lightcurve(path)
+
+
+def test_drops_nonfinite_rows(tmp_path, sample_lc):
+    time = sample_lc.time.copy()
+    flux = sample_lc.flux.copy()
+    flux[5] = np.nan
+    flux[10] = np.inf
+    path = tmp_path / "dirty.npz"
+    np.savez(path, time=time, flux=flux)
+
+    lc = load_lightcurve(path)
+    assert lc.n_removed == 2
+    assert lc.time.size == time.size - 2
+
+
+def test_txt_positional_columns(tmp_path, sample_lc):
+    path = tmp_path / "lc.txt"
+    arr = np.column_stack([sample_lc.time, sample_lc.flux])
+    np.savetxt(path, arr)
+
+    lc = load_lightcurve(path)
+    ref_time, ref_flux = _reference_time_flux(sample_lc)
+    assert np.allclose(lc.time, ref_time, atol=1e-6)
+    assert np.allclose(lc.flux, ref_flux, atol=1e-6)

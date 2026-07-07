@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "foldr"
+version = "0.1.0"
+description = "Phase-folding and period-search CLI for light curves"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Nikhil Cherry" }]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+dependencies = [
+    "numpy>=1.24",
+    "astropy>=5.3",
+    "rich>=13.0",
+    "matplotlib>=3.7",
+]
+
+[project.optional-dependencies]
+tls = ["transitleastsquares"]
+all = ["foldr[tls]"]
+dev = ["pytest", "pandas"]
+
+[project.scripts]
+foldr = "foldr.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/nikhilcherry/foldr"
+
+[tool.setuptools.packages.find]
+include = ["foldr*"]
