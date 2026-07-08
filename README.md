@@ -79,6 +79,22 @@ time, column 1 is flux, an optional column 2 is flux error. Use `--time-col`
 column is found, foldr's error message lists the columns that *were*
 available in the file, so you don't have to go re-inspect it separately.
 
+### Detrending
+
+`--detrend DAYS` removes slow stellar variability before search/fold with a
+running window. Each point's local trend is the [biweight
+location](https://docs.astropy.org/en/stable/api/astropy.stats.biweight_location.html)
+of flux within `DAYS` of it, not a plain running median — a median still
+lets a handful of in-window in-transit points drag the local trend down,
+partially flattening the transit it's supposed to preserve; the biweight
+estimator downweights those outliers from the window's own robust center
+instead. Following [Hippke & Heller
+2019](https://arxiv.org/abs/1906.00966) (the `wotan` detrending paper),
+pick a window at least ~3x your expected transit duration so a full
+transit can't dominate — and stay wary of even larger windows on noisy,
+sparsely-sampled data, since long windows have fewer usable comparison
+points per step and detrend less reliably regardless of estimator.
+
 ### SDE and the exit-code contract
 
 `SDE` (Signal Detection Efficiency) measures how far the best period's

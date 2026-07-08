@@ -164,6 +164,21 @@ def _estimate_t0(
 def _running_median_detrend(
     time: np.ndarray, flux: np.ndarray, window_days: float
 ) -> np.ndarray:
+    """Running Tukey's-biweight-location detrend over a sliding time window.
+
+    Uses the biweight location (astropy.stats.biweight_location) rather than
+    a plain median. Hippke & Heller (2019, the wotan paper — see AJ 158, 143)
+    show biweight recovers ~99%/94% of shallow Kepler/K2 transits vs. worse
+    rates for median or Savitzky-Golay filters, because a plain median still
+    lets a handful of in-window in-transit points pull the local trend down,
+    partially "eating" the transit; biweight downweights outliers from the
+    window's own robust center instead of treating every point equally. Falls
+    back to the median automatically wherever a window's MAD is zero (see
+    biweight_location docs). As a rule of thumb, prefer a window >= 3x the
+    expected transit duration so a full transit can't dominate one window.
+    """
+    from astropy.stats import biweight_location
+
     order = np.argsort(time)
     t_sorted = time[order]
     f_sorted = flux[order]
@@ -179,7 +194,8 @@ def _running_median_detrend(
             left += 1
         while right < n and t_sorted[right] <= t_sorted[i] + half:
             right += 1
-        trend[i] = np.median(f_sorted[left:right])
+        window = f_sorted[left:right]
+        trend[i] = biweight_location(window) if window.size > 1 else window[0]
 
     trend = np.where(trend != 0, trend, 1.0)
     detrended_sorted = f_sorted / trend
