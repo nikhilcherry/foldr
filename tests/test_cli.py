@@ -125,4 +125,7 @@ def test_cli_tls_missing_extra_message(tmp_path, transit_lc_factory):
 
     proc = run_cli([str(lc_path), "--engine", "tls", "--no-plot"], cwd=tmp_path.parent)
     assert proc.returncode == 2
-    assert proc.stdout.strip() == "TLS engine requires: pip install foldr[tls]"
+    assert proc.stdout.strip() == (
+        'TLS engine requires: pip install "foldr[tls] @ '
+        'git+https://github.com/nikhilcherry/foldr"'
+    )

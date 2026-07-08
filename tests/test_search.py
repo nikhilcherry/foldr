@@ -83,5 +83,5 @@ def test_run_tls_import_error_without_extra():
         n_removed=0,
     )
 
-    with pytest.raises(ImportError, match=r"pip install foldr\[tls\]"):
+    with pytest.raises(ImportError, match=r"pip install \"foldr\[tls\]"):
         run_tls(synth_lc, period_min=0.5, period_max=1.0)

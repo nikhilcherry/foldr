@@ -108,7 +108,10 @@ def main(argv: list[str] | None = None) -> int:
         )
     except ImportError as exc:
         if args.engine == "tls":
-            print("TLS engine requires: pip install foldr[tls]")
+            print(
+                "TLS engine requires: pip install "
+                '"foldr[tls] @ git+https://github.com/nikhilcherry/foldr"'
+            )
             return 2
         console.print(f"[red]Error:[/red] {exc}")
         return 2

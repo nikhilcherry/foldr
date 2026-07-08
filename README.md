@@ -12,14 +12,14 @@ two-panel diagnostic plot.
 ## Install
 
 ```bash
-pip install foldr
+pip install git+https://github.com/nikhilcherry/foldr
 ```
 
 BLS (via astropy) is included in the base install and requires no extra
 setup. TLS is optional and pulled in with an extra:
 
 ```bash
-pip install "foldr[tls]"
+pip install "foldr[tls] @ git+https://github.com/nikhilcherry/foldr"
 ```
 
 If TLS isn't installed and you ask for it explicitly (`--engine tls`), foldr

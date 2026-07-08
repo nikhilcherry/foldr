@@ -95,7 +95,10 @@ def run_tls(lc, period_min: float, period_max: float | None) -> dict:
     try:
         from transitleastsquares import transitleastsquares
     except ImportError as exc:
-        raise ImportError("TLS engine requires: pip install foldr[tls]") from exc
+        raise ImportError(
+            "TLS engine requires: pip install "
+            '"foldr[tls] @ git+https://github.com/nikhilcherry/foldr"'
+        ) from exc
 
     time = lc.time
     flux = lc.flux
