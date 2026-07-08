@@ -111,16 +111,47 @@ search-statistic power stands out from the noise floor of the periodogram:
 `--period` mode always exits `0` on success since no search (and therefore
 no SDE) is involved.
 
-## More examples
+## Gallery
 
-A fainter, noisier signal near the recovery threshold — still confidently
-detected, but with visibly more scatter in the folded curve:
+**Marginal-depth transit.** A fainter, noisier signal near the recovery
+threshold — still confidently detected (SDE ≈ 19), but with visibly more
+scatter in the folded curve than the hero example above:
 
 ![Marginal-depth transit](docs/example_marginal.png)
 
-Pure noise, no injected signal — SDE falls below 7.0 and foldr exits `1`:
+**Pure noise, no injected signal.** SDE falls below 7.0 and foldr exits `1`:
 
 ![No signal](docs/example_noise.png)
+
+**TLS engine (`--engine tls`).** Same underlying light curve as the hero
+example, run through Transit Least Squares instead of BLS — note the
+sharper SDE (≈ 43 vs ≈ 17) since TLS fits the full transit shape (limb
+darkening, ingress/egress) rather than a box:
+
+![TLS engine](docs/example_tls.png)
+
+**`--detrend` before/after.** A transit riding on top of heavy stellar
+variability (two superimposed sinusoids), folded at its known ephemeris.
+Without detrending the transit is essentially invisible against the
+variability (SNR ≈ 2.2):
+
+![Before detrending](docs/example_detrend_before.png)
+
+The same light curve and fold, with `--detrend 0.3` applied (biweight
+running-window, ~3x the transit duration per wōtan's rule of thumb) — the
+transit is now the dominant feature (SNR ≈ 27):
+
+![After detrending](docs/example_detrend_after.png)
+
+**Eclipsing binary, not a planet.** A ~2% deep, sharply box-shaped eclipse
+— an order of magnitude deeper than a realistic planetary transit. foldr
+doesn't try to classify what it finds; the depth number in the summary
+table is often the fastest tell that a strong detection is a stellar
+eclipse, not a planet (the true secondary eclipse here sits at phase 0.5,
+outside the plot's default zoom window, which is sized to the primary's
+duration):
+
+![Eclipsing binary](docs/example_eclipsing_binary.png)
 
 ## Development
 
