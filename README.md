@@ -5,7 +5,9 @@ at a `.fits`, `.npz`, `.csv`, or `.txt`/`.dat` file and it finds the best
 period (via [Box Least Squares](https://docs.astropy.org/en/stable/timeseries/bls.html)
 or, optionally, [Transit Least Squares](https://github.com/hippke/tls)),
 phase-folds and bins the data, prints the key transit numbers, and saves a
-two-panel diagnostic plot.
+diagnostic plot (three panels when a period search ran — raw light curve,
+phase-folded curve, and the periodogram; two panels when you supply
+`--period` directly, since there's no search to plot).
 
 ![Strong transit recovery](docs/example_strong.png)
 
@@ -58,9 +60,10 @@ foldr lc.npz --json
 3. Phase-folds the light curve at the best (or user-supplied) period and
    epoch, bins it (`--bins`, default 200), and estimates depth, duration,
    and SNR from the binned curve.
-4. Prints a summary table (or JSON with `--json`) and saves a two-panel
-   PNG — raw light curve with predicted transit times marked, plus the
-   phase-folded and binned curve — unless `--no-plot` is passed.
+4. Prints a summary table (or JSON with `--json`) and saves a PNG — raw
+   light curve with predicted transit times marked, the phase-folded and
+   binned curve, and (when a period search ran) a periodogram panel with
+   the best period and SDE marked — unless `--no-plot` is passed.
 
 ### Column resolution
 

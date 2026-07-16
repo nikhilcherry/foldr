@@ -1,5 +1,6 @@
-"""Two-panel figure: raw light curve + phase-folded curve. Agg only, never
-opens an interactive window."""
+"""Diagnostic figure: raw light curve + phase-folded curve, plus a
+periodogram panel when a period search ran. Agg only, never opens an
+interactive window."""
 
 from __future__ import annotations
 
@@ -14,13 +15,21 @@ import numpy as np
 
 
 def make_figure(result, out_path: str | Path) -> Path:
-    """Render and save the two-panel figure for a FoldResult. Returns the
-    resolved output path.
+    """Render and save the figure for a FoldResult: raw light curve +
+    phase-folded curve, plus a periodogram panel when a period search was
+    run (i.e. search_meta carries a power spectrum — not present when
+    --period was passed by the user, since no search happened). Returns
+    the resolved output path.
     """
     out_path = Path(out_path).expanduser().resolve()
     lc = result.lc
+    power_spectrum = (result.search_meta or {}).get("power_spectrum")
 
-    fig, (ax_raw, ax_fold) = plt.subplots(2, 1, figsize=(9, 7))
+    if power_spectrum:
+        fig, (ax_raw, ax_fold, ax_pgram) = plt.subplots(3, 1, figsize=(9, 10))
+    else:
+        fig, (ax_raw, ax_fold) = plt.subplots(2, 1, figsize=(9, 7))
+        ax_pgram = None
 
     # Raw panel: points only (never lines) so gaps > 0.5 d are never bridged.
     ax_raw.scatter(lc.time, lc.flux, s=3, c="0.5", alpha=0.6, linewidths=0)
@@ -76,6 +85,22 @@ def make_figure(result, out_path: str | Path) -> Path:
     ax_fold.set_xlabel("Phase")
     ax_fold.set_ylabel("Normalized flux")
     ax_fold.set_title("Phase-folded")
+
+    if ax_pgram is not None:
+        periods = np.asarray(power_spectrum["period"], dtype=float)
+        power = np.asarray(power_spectrum["power"], dtype=float)
+        ax_pgram.plot(periods, power, color="0.3", linewidth=0.8)
+        ax_pgram.axvline(
+            result.period, color="crimson", linewidth=1, linestyle="--",
+            label=f"best P = {result.period:.5f} d",
+        )
+        if result.sde is not None:
+            ax_pgram.set_title(f"Periodogram ({result.engine.upper()}, SDE = {result.sde:.2f})")
+        else:
+            ax_pgram.set_title(f"Periodogram ({result.engine.upper()})")
+        ax_pgram.set_xlabel("Period (d)")
+        ax_pgram.set_ylabel("Power" if result.engine == "bls" else "SDE")
+        ax_pgram.legend(loc="upper right", fontsize=8, frameon=False)
 
     title = (
         f"{Path(lc.source_path).name}  —  "
