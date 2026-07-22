@@ -11,6 +11,18 @@ phase-folded curve, and the periodogram; two panels when you supply
 
 ![Strong transit recovery](docs/example_strong.png)
 
+```mermaid
+flowchart LR
+    R["raw light curve\n(.fits / .npz / .csv)"] --> D["foldr\n(detrend, period search, fold)"]:::here
+    D -->|"period, epoch"| T["fitr\n(model-fit classification)"]
+    D -->|"period, epoch"| L["localizr\n(centroid-offset vetting)"]
+    classDef here fill:#2563eb,color:#fff,stroke:none;
+```
+
+`foldr` is the entry point of the classification pipeline: it turns a raw
+light curve into the `--period`/`--epoch` that `fitr` and `localizr` both
+need as input, and is usually the first tool run on any new target.
+
 ## Install
 
 ```bash
