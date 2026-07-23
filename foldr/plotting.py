@@ -108,6 +108,7 @@ def make_figure(result, out_path: str | Path) -> Path:
     )
     fig.suptitle(title)
     fig.tight_layout(rect=(0, 0, 1, 0.96))
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
 

@@ -50,3 +50,22 @@ def test_periodogram_panel_only_added_when_search_ran(tmp_path, transit_lc_facto
     # (figsize (9,10)) is taller than the 2-panel user-ephemeris one
     # (figsize (9,7)).
     assert _png_height(search_path) > _png_height(user_path)
+
+
+def test_make_figure_creates_missing_parent_directories(tmp_path, transit_lc_factory):
+    # --plot-path into a directory that doesn't exist yet (e.g. a fresh
+    # per-run output folder) should work, not raise a raw FileNotFoundError
+    # from matplotlib's savefig.
+    synth = transit_lc_factory(
+        period=3.21, t0=1.5, depth=0.005, duration=0.1, noise=1e-4,
+        span=10.0, cadence=0.5 / 24, seed=1,
+    )
+    lc = _to_lc(synth)
+    result = fold(lc, period=3.21, t0=1.5)
+
+    out_path = tmp_path / "nested" / "does" / "not" / "exist" / "plot.png"
+    saved_path = make_figure(result, out_path)
+
+    assert saved_path == out_path
+    assert out_path.exists()
+    assert out_path.stat().st_size > 0
