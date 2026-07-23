@@ -82,6 +82,16 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     console = Console()
 
+    if args.period is not None and args.period <= 0:
+        console.print(f"[red]Error:[/red] --period must be positive, got {args.period}")
+        return 2
+    if args.period_min <= 0:
+        console.print(f"[red]Error:[/red] --period-min must be positive, got {args.period_min}")
+        return 2
+    if args.period_max is not None and args.period_max <= 0:
+        console.print(f"[red]Error:[/red] --period-max must be positive, got {args.period_max}")
+        return 2
+
     try:
         path = Path(args.file).expanduser().resolve()
         lc = load_lightcurve(path, time_col=args.time_col, flux_col=args.flux_col)

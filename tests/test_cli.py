@@ -50,6 +50,33 @@ def test_cli_missing_file_exit_2(tmp_path):
     assert proc.returncode == 2
 
 
+def test_cli_rejects_zero_period(tmp_path, transit_lc_factory):
+    # --period 0 divides by zero in phase_fold(), silently turning every
+    # phase into NaN and printing a nonsense "Period: 0.000000 d" result
+    # at exit 0 instead of a clear usage error.
+    synth = transit_lc_factory(
+        period=3.21, t0=1.5, depth=0.005, duration=0.1, noise=1e-4,
+        span=27.0, cadence=0.5 / 24, seed=42,
+    )
+    lc_path = save_npz(synth, tmp_path / "lc.npz")
+
+    proc = run_cli([str(lc_path), "--period", "0", "--t0", "1.5", "--no-plot"], cwd=tmp_path.parent)
+    assert proc.returncode == 2
+    assert "period must be positive" in proc.stdout + proc.stderr
+
+
+def test_cli_rejects_negative_period_min(tmp_path, transit_lc_factory):
+    synth = transit_lc_factory(
+        period=3.21, t0=1.5, depth=0.005, duration=0.1, noise=1e-4,
+        span=27.0, cadence=0.5 / 24, seed=42,
+    )
+    lc_path = save_npz(synth, tmp_path / "lc.npz")
+
+    proc = run_cli([str(lc_path), "--period-min", "-1", "--no-plot"], cwd=tmp_path.parent)
+    assert proc.returncode == 2
+    assert "period-min must be positive" in proc.stdout + proc.stderr
+
+
 def test_cli_json_roundtrips(tmp_path, transit_lc_factory):
     synth = transit_lc_factory(
         period=3.21,
