@@ -1,5 +1,11 @@
 # foldr
 
+<p align="center">
+  <img alt="python" src="https://img.shields.io/badge/python-3.10%2B-blue">
+  <img alt="pipeline" src="https://img.shields.io/badge/Arvyo_BAH2026-period_search-8b5cf6">
+  <img alt="license" src="https://img.shields.io/badge/license-MIT-green">
+</p>
+
 Phase-folding and period-search CLI for astronomical light curves. Point it
 at a `.fits`, `.npz`, `.csv`, or `.txt`/`.dat` file and it finds the best
 period (via [Box Least Squares](https://docs.astropy.org/en/stable/timeseries/bls.html)
@@ -102,8 +108,13 @@ points per step and detrend less reliably regardless of estimator.
 
 `SDE` (Signal Detection Efficiency) measures how far the best period's
 search-statistic power stands out from the noise floor of the periodogram:
-`(power[best] - mean(power)) / std(power)`. foldr uses an SDE threshold of
-**7.0** to decide whether a search-mode run found a credible signal.
+`(power[best] - mean(baseline)) / std(baseline)`, where `baseline` is the
+periodogram with a ±5% window around the best period excluded (BLS engine
+only -- TLS reports its own SDE). Folding the peak's own power into the
+noise statistics biases them (inflates the std, deflates SDE) exactly when
+it matters most: a strong, narrow peak over a periodogram with relatively
+few trial periods. foldr uses an SDE threshold of **7.0** to decide whether
+a search-mode run found a credible signal.
 
 | Exit code | Meaning |
 |---|---|

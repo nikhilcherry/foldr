@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import pytest
 
+import numpy as np
+
 from foldr.io import LightCurve
-from foldr.search import run_bls, run_tls
+from foldr.search import _sde_from_power, run_bls, run_tls
 
 
 def _to_lc(synth):
@@ -64,6 +66,29 @@ def test_run_tls_recovers_injected_transit(transit_lc_factory):
 
     assert abs(result["period"] - period) / period < 0.01
     assert abs(result["depth"] - depth) / depth < 0.30
+
+
+def test_sde_from_power_excludes_peak_window_from_baseline():
+    rng = np.random.default_rng(0)
+    periods = np.linspace(0.5, 13.5, 2000)
+    power = rng.normal(0.0, 1.0, size=periods.size)
+    peak_idx = 1000
+    power[peak_idx] = 50.0  # a single very strong, narrow peak
+
+    sde_excluding_peak = _sde_from_power(power, periods, peak_idx)
+    naive_sde = (power[peak_idx] - np.mean(power)) / np.std(power)
+
+    # Folding a single huge peak into the baseline std inflates it and
+    # deflates the naive SDE relative to a baseline that excludes it.
+    assert sde_excluding_peak > naive_sde
+
+
+def test_sde_from_power_falls_back_to_full_power_with_few_trials():
+    periods = np.linspace(1.0, 2.0, 5)
+    power = np.array([1.0, 1.0, 1.0, 1.0, 5.0])
+    sde = _sde_from_power(power, periods, best_idx=4)
+    naive_sde = (power[4] - np.mean(power)) / np.std(power)
+    assert sde == pytest.approx(naive_sde)
 
 
 def test_run_tls_import_error_without_extra():

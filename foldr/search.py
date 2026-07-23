@@ -5,6 +5,29 @@ from __future__ import annotations
 import numpy as np
 
 _PREVIEW_MAX = 100
+# Fractional period window around the best period excluded from the noise
+# baseline when computing SDE. Standard SDE definitions (Kovacs et al. 2002,
+# Ofir 2014) take the mean/std over the periodogram's *noise continuum*, not
+# the raw periodogram -- folding the signal's own peak into that baseline
+# inflates the std and deflates SDE, an effect that's largest exactly when
+# it matters most: a strong, narrow peak over relatively few trial periods.
+_SDE_EXCLUSION_FRAC = 0.05
+_SDE_MIN_BASELINE_POINTS = 10
+
+
+def _sde_from_power(power: np.ndarray, periods: np.ndarray, best_idx: int) -> float:
+    """SDE of ``power[best_idx]`` against the periodogram's noise baseline,
+    excluding a window around the peak period so the peak can't bias its
+    own significance estimate."""
+    best_period = periods[best_idx]
+    mask = np.abs(periods - best_period) > _SDE_EXCLUSION_FRAC * best_period
+    if np.count_nonzero(mask) < _SDE_MIN_BASELINE_POINTS:
+        mask = np.ones_like(power, dtype=bool)  # too few trial periods to exclude a window
+    baseline = power[mask]
+    std = float(np.std(baseline))
+    if std <= 0:
+        return 0.0
+    return float((power[best_idx] - np.mean(baseline)) / std)
 
 
 def run_bls(lc, period_min: float, period_max: float | None) -> dict:
@@ -62,15 +85,14 @@ def run_bls(lc, period_min: float, period_max: float | None) -> dict:
     best_duration_days = float(np.asarray(result.duration)[best_idx])
     best_depth = float(np.asarray(result.depth)[best_idx])
 
-    power_std = float(np.std(power))
-    sde = float((power[best_idx] - np.mean(power)) / power_std) if power_std > 0 else 0.0
+    periods_arr = np.asarray(result.period, dtype=float)
+    sde = _sde_from_power(power, periods_arr, best_idx)
 
     n = power.size
     if n > _PREVIEW_MAX:
         idx = np.linspace(0, n - 1, _PREVIEW_MAX).astype(int)
     else:
         idx = np.arange(n)
-    periods_arr = np.asarray(result.period, dtype=float)
 
     return {
         "period": best_period,
