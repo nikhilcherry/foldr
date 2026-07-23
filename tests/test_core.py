@@ -124,6 +124,14 @@ def test_fold_rejects_non_positive_period_directly(transit_lc_factory):
         fold(lc, period_min=-1.0)
     with pytest.raises(ValueError, match="period_max must be positive"):
         fold(lc, period=2.0, period_max=-1.0)
+    with pytest.raises(ValueError, match="bins must be positive"):
+        fold(lc, period=2.0, bins=0)
+    with pytest.raises(ValueError, match="bins must be positive"):
+        fold(lc, period=2.0, bins=-5)
+    with pytest.raises(ValueError, match="detrend_window_days must be positive"):
+        fold(lc, period=2.0, detrend_window_days=0)
+    with pytest.raises(ValueError, match="detrend_window_days must be positive"):
+        fold(lc, period=2.0, detrend_window_days=-5.0)
 
 
 def test_fold_detrend_does_not_crash(transit_lc_factory):

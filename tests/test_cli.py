@@ -77,6 +77,33 @@ def test_cli_rejects_negative_period_min(tmp_path, transit_lc_factory):
     assert "period-min must be positive" in proc.stdout + proc.stderr
 
 
+def test_cli_rejects_non_positive_bins_and_detrend(tmp_path, transit_lc_factory):
+    # bins<=0 and detrend_window_days<=0 crashed inside fold() itself
+    # (bin_folded / _running_median_detrend) with a raw ValueError/
+    # IndexError; confirm the CLI surfaces fold()'s new clean ValueError
+    # instead (caught by the existing except (FoldrReadError, ValueError)
+    # around the fold() call -- no separate CLI-side check needed).
+    synth = transit_lc_factory(
+        period=3.21, t0=1.5, depth=0.005, duration=0.1, noise=1e-4,
+        span=27.0, cadence=0.5 / 24, seed=42,
+    )
+    lc_path = save_npz(synth, tmp_path / "lc.npz")
+
+    proc = run_cli(
+        [str(lc_path), "--period", "3.21", "--t0", "1.5", "--bins", "0", "--no-plot"],
+        cwd=tmp_path.parent,
+    )
+    assert proc.returncode == 2
+    assert "bins must be positive" in proc.stdout + proc.stderr
+
+    proc = run_cli(
+        [str(lc_path), "--period", "3.21", "--t0", "1.5", "--detrend", "-5", "--no-plot"],
+        cwd=tmp_path.parent,
+    )
+    assert proc.returncode == 2
+    assert "detrend_window_days must be positive" in proc.stdout + proc.stderr
+
+
 def test_cli_json_roundtrips(tmp_path, transit_lc_factory):
     synth = transit_lc_factory(
         period=3.21,

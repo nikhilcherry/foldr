@@ -58,6 +58,14 @@ def fold(
         raise ValueError(f"period_min must be positive, got {period_min}")
     if period_max is not None and period_max <= 0:
         raise ValueError(f"period_max must be positive, got {period_max}")
+    if bins <= 0:
+        raise ValueError(f"bins must be positive, got {bins}")
+    if detrend_window_days is not None and detrend_window_days <= 0:
+        # _running_median_detrend's sliding window inverts for a negative
+        # window_days (right edge ends up before left edge), producing an
+        # empty per-point window and crashing with a raw, confusing
+        # IndexError deep inside the detrend loop instead of a usage error.
+        raise ValueError(f"detrend_window_days must be positive, got {detrend_window_days}")
 
     if isinstance(path_or_lc, LightCurve):
         lc = path_or_lc
