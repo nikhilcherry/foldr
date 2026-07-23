@@ -134,6 +134,33 @@ def test_fold_rejects_non_positive_period_directly(transit_lc_factory):
         fold(lc, period=2.0, detrend_window_days=-5.0)
 
 
+def test_fold_rejects_nan_for_all_positive_params(transit_lc_factory):
+    # `x <= 0` does NOT catch NaN (NaN compares False to both `> 0` and
+    # `<= 0`), so a naive non-positive guard silently lets a NaN value
+    # through to the same underlying division-by-zero/empty-window bugs.
+    import math
+
+    import pytest
+
+    synth = transit_lc_factory(
+        period=2.0, t0=0.3, depth=0.01, duration=0.05, noise=1e-4,
+        span=10.0, cadence=1 / 24, seed=5,
+    )
+    lc = _to_lc(synth)
+    nan = math.nan
+
+    with pytest.raises(ValueError, match="period must be positive"):
+        fold(lc, period=nan, t0=0.3)
+    with pytest.raises(ValueError, match="period_min must be positive"):
+        fold(lc, period_min=nan)
+    with pytest.raises(ValueError, match="period_max must be positive"):
+        fold(lc, period=2.0, period_max=nan)
+    with pytest.raises(ValueError, match="bins must be positive"):
+        fold(lc, period=2.0, bins=nan)
+    with pytest.raises(ValueError, match="detrend_window_days must be positive"):
+        fold(lc, period=2.0, detrend_window_days=nan)
+
+
 def test_fold_detrend_does_not_crash(transit_lc_factory):
     synth = transit_lc_factory(
         period=2.0,

@@ -52,15 +52,17 @@ def fold(
     # phase_fold() divides by period; a non-positive period silently turns
     # every phase into NaN/inf instead of raising -- validated here (not
     # just in cli.py) since fold() is the public library entry point too.
-    if period is not None and period <= 0:
+    # `not x > 0` (rather than `x <= 0`) also catches NaN, which compares
+    # False to both `> 0` and `<= 0` and would otherwise slip through.
+    if period is not None and not period > 0:
         raise ValueError(f"period must be positive, got {period}")
-    if period_min <= 0:
+    if not period_min > 0:
         raise ValueError(f"period_min must be positive, got {period_min}")
-    if period_max is not None and period_max <= 0:
+    if period_max is not None and not period_max > 0:
         raise ValueError(f"period_max must be positive, got {period_max}")
-    if bins <= 0:
+    if not bins > 0:
         raise ValueError(f"bins must be positive, got {bins}")
-    if detrend_window_days is not None and detrend_window_days <= 0:
+    if detrend_window_days is not None and not detrend_window_days > 0:
         # _running_median_detrend's sliding window inverts for a negative
         # window_days (right edge ends up before left edge), producing an
         # empty per-point window and crashing with a raw, confusing
