@@ -104,6 +104,28 @@ def test_fold_accepts_in_memory_lightcurve(transit_lc_factory):
     assert result.lc.time.size == lc.time.size
 
 
+def test_fold_rejects_non_positive_period_directly(transit_lc_factory):
+    # phase_fold() divides by period; period<=0 silently turns every phase
+    # into NaN/inf instead of raising. This must be caught in fold() itself
+    # (the public library entry point), not just cli.py, since fold() is
+    # used as a library function, not only via the CLI.
+    import pytest
+
+    synth = transit_lc_factory(
+        period=2.0, t0=0.3, depth=0.01, duration=0.05, noise=1e-4,
+        span=10.0, cadence=1 / 24, seed=5,
+    )
+    lc = _to_lc(synth)
+
+    for bad_period in (0, -3.0):
+        with pytest.raises(ValueError, match="period must be positive"):
+            fold(lc, period=bad_period, t0=0.3)
+    with pytest.raises(ValueError, match="period_min must be positive"):
+        fold(lc, period_min=-1.0)
+    with pytest.raises(ValueError, match="period_max must be positive"):
+        fold(lc, period=2.0, period_max=-1.0)
+
+
 def test_fold_detrend_does_not_crash(transit_lc_factory):
     synth = transit_lc_factory(
         period=2.0,

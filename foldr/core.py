@@ -49,6 +49,16 @@ def fold(
     minimum-flux phase if not supplied). engine='auto' uses TLS when
     importable, else BLS.
     """
+    # phase_fold() divides by period; a non-positive period silently turns
+    # every phase into NaN/inf instead of raising -- validated here (not
+    # just in cli.py) since fold() is the public library entry point too.
+    if period is not None and period <= 0:
+        raise ValueError(f"period must be positive, got {period}")
+    if period_min <= 0:
+        raise ValueError(f"period_min must be positive, got {period_min}")
+    if period_max is not None and period_max <= 0:
+        raise ValueError(f"period_max must be positive, got {period_max}")
+
     if isinstance(path_or_lc, LightCurve):
         lc = path_or_lc
     else:
